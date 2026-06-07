@@ -1,17 +1,17 @@
 # WiFi Admin Frontend
 
-Admin frontend built with Vite + React. Talks to backend at `http://localhost:3000/api` by default. Set `LOCAL_API_URL` to change.
+This admin frontend now uses a standalone static dashboard served from `admin-frontend/index.html`.
 
 Quick start:
 
 ```bash
 cd admin-frontend
-npm install
-npm run dev
+npm run serve
 ```
 
-Login: use the API `POST /api/admin/auth/signup` to create first admin user or `POST /api/admin/auth/login` to sign in.
+Then open `http://localhost:4173` in your browser.
 
 Notes:
-- JWT stored in `localStorage` under `admin_token`.
-- The UI is minimal; it demonstrates login, dashboard, settings, routers, and packages interfaces wired to backend APIs.
+- The admin UI is currently a static HTML dashboard with inline JavaScript.
+- It no longer relies on the React/Vite application entrypoint.
+- The admin auth flow is simulated via `localStorage` and `sessionStorage` in the browser.

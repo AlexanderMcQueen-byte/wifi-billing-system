@@ -1,15 +1,1834 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WiFi Admin</title>
-    <!-- Fonts: Inter (UI) + JetBrains Mono (monospace) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEROLINK Core - Wi-Fi Hotspot Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#04060A',
+                            card: '#0B0F19',
+                            cardMuted: '#0E1424',
+                            border: '#1E293B',
+                            borderGlow: '#4F46E5',
+                            textMuted: '#64748B',
+                            textLight: '#F8FAFC',
+                            indigo: '#6366F1',
+                            mint: '#10B981',
+                            blue: '#0EA5E9',
+                            rose: '#F43F5E',
+                            amber: '#F59E0B'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root" class="antialiased"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #04060A;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #04060A;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6366F1;
+        }
+        .neon-shadow-mint {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
+        .neon-shadow-indigo {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+        }
+    </style>
+</head>
+<body class="text-brand-textLight overflow-x-hidden antialiased">
+
+    <!-- SECURE MASTER AUTH GATE (LOGIN / REGISTER SIGNUP OVERLAY) -->
+    <div id="auth-gate" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-brand-bg relative overflow-hidden">
+        <!-- Abstract Tech Background Elements -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f293d_1px,transparent_1px),linear-gradient(to_bottom,#1f293d_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-25"></div>
+        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-brand-indigo/10 blur-[120px] rounded-full"></div>
+
+        <!-- Auth Card Container -->
+        <div class="bg-brand-card border border-brand-border/80 w-full max-w-md rounded-2xl p-8 relative z-10 shadow-2xl transition-all duration-300 transform">
+            <!-- Branding Header -->
+            <div class="flex flex-col items-center text-center gap-3 mb-8">
+                <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-brand-indigo to-brand-blue flex items-center justify-center shadow-lg shadow-brand-indigo/35">
+                    <i class="fa-solid fa-bolt text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wider text-brand-textLight">ZEROLINK CORE</h1>
+                    <p id="auth-subtitle" class="text-xs font-mono uppercase tracking-widest text-brand-mint font-bold mt-1">Local Edge Gateway Setup</p>
+                </div>
+            </div>
+
+            <!-- Login View -->
+            <div id="login-view" class="space-y-5">
+                <div class="p-4 bg-brand-indigo/10 border border-brand-indigo/20 rounded-xl flex gap-3 items-start">
+                    <i class="fa-solid fa-circle-info text-brand-indigo mt-0.5 text-sm"></i>
+                    <p class="text-[11px] leading-relaxed text-brand-textMuted">Provide your registered administrator security credentials to log in and manage the local network socket pool.</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-textMuted uppercase mb-2">Admin Email / Username</label>
+                        <input id="login-identifier" type="text" placeholder="alex@zerolink.io" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3.5 text-sm text-brand-textLight focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-[10px] font-bold text-brand-textMuted uppercase">Security Password</label>
+                        </div>
+                        <input id="login-password" type="password" placeholder="••••••••••••" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3.5 text-sm text-brand-textLight focus:outline-none transition-colors">
+                    </div>
+                </div>
+                <button onclick="loginUser()" class="w-full py-3.5 bg-brand-indigo text-white font-extrabold text-xs rounded-xl hover:bg-brand-indigo/90 transition shadow-lg shadow-brand-indigo/15 uppercase tracking-wider mt-2">
+                    INITIATE SECURE LOGIN
+                </button>
+                <p class="text-xs text-center text-brand-textMuted">
+                    New deployment? <button onclick="toggleAuthMode('signup')" class="text-brand-mint font-bold hover:underline">Create Admin Account</button>
+                </p>
+            </div>
+
+            <!-- Signup View (Create Admin Account) -->
+            <div id="signup-view" class="hidden space-y-5">
+                <div class="p-4 bg-brand-mint/10 border border-brand-mint/20 rounded-xl flex gap-3 items-start">
+                    <i class="fa-solid fa-shield-halved text-brand-mint mt-0.5 text-sm"></i>
+                    <p class="text-[11px] leading-relaxed text-brand-textMuted">No master accounts found on this router node. Register your administrator credentials below to bind your local gateway databases.</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-textMuted uppercase mb-2">Full Administrator Name</label>
+                        <input id="signup-name" type="text" placeholder="Alexander Admin" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3.5 text-sm text-brand-textLight focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-textMuted uppercase mb-2">Admin Email Address</label>
+                        <input id="signup-email" type="email" placeholder="alex@zerolink.io" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3.5 text-sm text-brand-textLight focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-textMuted uppercase mb-2">Choose Master Password</label>
+                        <input id="signup-password" type="password" placeholder="••••••••••••" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3.5 text-sm text-brand-textLight focus:outline-none transition-colors">
+                    </div>
+                </div>
+                <button onclick="registerUser()" class="w-full py-3.5 bg-brand-mint text-brand-bg font-extrabold text-xs rounded-xl hover:bg-brand-mint/90 transition shadow-lg shadow-brand-mint/15 uppercase tracking-wider mt-2">
+                    REGISTER GATEWAY ACCOUNT
+                </button>
+                <p class="text-xs text-center text-brand-textMuted">
+                    Already registered? <button onclick="toggleAuthMode('login')" class="text-brand-indigo font-bold hover:underline">Log In Instead</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (HIDDEN UNTIL LOGIN) -->
+    <div id="app-container" class="hidden flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR LEFT -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 transform -translate-x-full md:translate-x-0 transition-transform duration-300 bg-brand-card border-r border-brand-border flex flex-col">
+            <!-- Brand header -->
+            <div class="p-6 border-b border-brand-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-indigo to-brand-blue flex items-center justify-center shadow-lg shadow-brand-indigo/35">
+                        <i class="fa-solid fa-bolt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-lg tracking-wider text-brand-textLight">ZEROLINK</h1>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-brand-mint font-bold">ISP CORE PORTAL</p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-brand-textMuted hover:text-brand-textLight">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Core connection status panel -->
+            <div class="mx-4 mt-6 p-4 bg-brand-bg/60 border border-brand-border/60 rounded-xl flex items-center gap-4">
+                <div class="relative flex items-center justify-center">
+                    <span class="absolute inline-flex h-3 w-3 rounded-full bg-brand-mint opacity-75 animate-ping"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-mint"></span>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-brand-textLight truncate">Primary Edge Hub</p>
+                    <p class="text-[10px] font-mono text-brand-textMuted truncate">Connected • Port 8728</p>
+                </div>
+            </div>
+
+            <!-- Tab Switching Links -->
+            <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+                <button onclick="switchTab('overview')" id="nav-overview" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 bg-brand-indigo text-white shadow-lg shadow-brand-indigo/15">
+                    <i class="fa-solid fa-chart-line text-base"></i>
+                    <span>Overview Topology</span>
+                </button>
+
+                <button onclick="switchTab('routers')" id="nav-routers" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-brand-textMuted hover:bg-brand-bg hover:text-brand-textLight">
+                    <i class="fa-solid fa-server text-base"></i>
+                    <span>Router Nodes</span>
+                </button>
+
+                <button onclick="switchTab('mpesa')" id="nav-mpesa" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-brand-textMuted hover:bg-brand-bg hover:text-brand-textLight">
+                    <i class="fa-solid fa-wallet text-base"></i>
+                    <span>M-Pesa Webhooks</span>
+                </button>
+
+                <button onclick="switchTab('packages')" id="nav-packages" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-brand-textMuted hover:bg-brand-bg hover:text-brand-textLight">
+                    <i class="fa-solid fa-wifi text-base"></i>
+                    <span>Wi-Fi Packages</span>
+                </button>
+
+                <button onclick="switchTab('sessions')" id="nav-sessions" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-brand-textMuted hover:bg-brand-bg hover:text-brand-textLight">
+                    <i class="fa-solid fa-users text-base"></i>
+                    <span>Live Sessions</span>
+                </button>
+
+                <!-- NEW: Tab button for Strategic Blueprint slides -->
+                <button onclick="switchTab('blueprint')" id="nav-blueprint" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-brand-textMuted hover:bg-brand-bg hover:text-brand-textLight">
+                    <i class="fa-solid fa-file-invoice text-base"></i>
+                    <span>Strategic Blueprint</span>
+                </button>
+            </nav>
+
+            <!-- Sidebar footer block -->
+            <div class="p-4 border-t border-brand-border mt-auto flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div id="admin-avatar" class="h-9 w-9 rounded-full bg-brand-indigo/10 border border-brand-indigo/20 flex items-center justify-center font-bold text-brand-indigo text-sm uppercase flex-shrink-0">
+                            AZ
+                        </div>
+                        <div class="overflow-hidden">
+                            <p id="sidebar-admin-name" class="text-sm font-semibold text-brand-textLight truncate">Alexander Admin</p>
+                            <p id="sidebar-admin-email" class="text-xs text-brand-textMuted truncate font-mono">alex@zerolink.io</p>
+                        </div>
+                    </div>
+                    <!-- Logout button -->
+                    <button onclick="logoutUser()" title="Logout Secure Session" class="p-2 text-brand-textMuted hover:text-brand-rose hover:bg-brand-rose/10 rounded-lg transition-colors ml-1">
+                        <i class="fa-solid fa-power-off text-sm"></i>
+                    </button>
+                </div>
+                <div class="text-[9px] text-brand-textMuted font-mono text-center pt-2 border-t border-brand-border/40">
+                    CORE SYSTEM v3.0.1
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN LAYOUT WRAPPER -->
+        <div class="flex-1 flex flex-col md:ml-64 overflow-hidden bg-brand-bg">
+
+            <!-- MOBILE APP HEADER -->
+            <header class="h-16 md:hidden border-b border-brand-border bg-brand-card flex items-center justify-between px-6 z-30">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="text-brand-textMuted hover:text-brand-textLight">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-lg font-black tracking-widest text-brand-indigo">ZEROLINK</h2>
+                </div>
+                <div id="mobile-admin-avatar" class="h-8 w-8 rounded-full bg-brand-indigo/10 flex items-center justify-center font-bold text-brand-indigo text-xs">
+                    AZ
+                </div>
+            </header>
+
+            <!-- MAIN WORKSPACE -->
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 custom-scrollbar">
+
+                <!-- TAB: OVERVIEW (With Interactive 3D Canvas) -->
+                <div id="tab-overview" class="tab-pane space-y-8">
+                    <!-- Title banner -->
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-textLight tracking-tight">Active Node Topology</h2>
+                            <p class="text-sm text-brand-textMuted">Interactive 3D network nodes mapping subscriber sessions to local server gateways.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button onclick="triggerQuickSimulator()" class="px-4 py-2.5 bg-brand-mint text-brand-bg font-extrabold text-xs rounded-xl hover:bg-brand-mint/90 transition neon-shadow-mint flex items-center gap-2">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                                SIMULATE STK PUSH
+                            </button>
+                            <span class="px-4 py-2 bg-brand-card border border-brand-border text-brand-textMuted font-mono text-xs rounded-xl flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-brand-mint animate-pulse"></span>
+                                Realtime Syncing
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 4 Column Analytics Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Revenue -->
+                        <div class="bg-brand-card border border-brand-border/60 hover:border-brand-indigo/40 rounded-2xl p-6 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-brand-textMuted">Today's Collections</span>
+                                <div class="h-8 w-8 rounded-lg bg-brand-mint/10 flex items-center justify-center text-brand-mint">
+                                    <i class="fa-solid fa-coins"></i>
+                                </div>
+                            </div>
+                            <h3 id="stat-revenue" class="text-3xl font-black text-brand-mint font-mono">KES 1,240</h3>
+                            <div class="flex items-center gap-1.5 mt-2 text-xs text-brand-textMuted">
+                                <span class="text-brand-mint font-bold">↑ 22.4%</span>
+                                <span>vs yesterday</span>
+                            </div>
+                        </div>
+
+                        <!-- Active Connections -->
+                        <div class="bg-brand-card border border-brand-border/60 hover:border-brand-indigo/40 rounded-2xl p-6 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-brand-textMuted">Active Users</span>
+                                <div class="h-8 w-8 rounded-lg bg-brand-indigo/10 flex items-center justify-center text-brand-indigo">
+                                    <i class="fa-solid fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <h3 id="stat-active-users" class="text-3xl font-black text-brand-textLight font-mono">3</h3>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-brand-mint/10 text-brand-mint uppercase tracking-wide">Live</span>
+                            </div>
+                            <p class="text-xs text-brand-textMuted mt-2">Locked dynamically via hardware MAC</p>
+                        </div>
+
+                        <!-- Latency Status -->
+                        <div class="bg-brand-card border border-brand-border/60 hover:border-brand-indigo/40 rounded-2xl p-6 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-brand-textMuted">Edge Latency</span>
+                                <div class="h-8 w-8 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
+                                    <i class="fa-solid fa-chart-bar"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-3xl font-black text-brand-textLight font-mono">12ms</h3>
+                            <div class="flex items-center gap-1.5 mt-2 text-xs text-brand-textMuted">
+                                <span>Core CPU load: <strong class="text-brand-mint font-mono font-bold">8%</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Edge Uptime -->
+                        <div class="bg-brand-card border border-brand-border/60 hover:border-brand-indigo/40 rounded-2xl p-6 transition-all duration-300">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wider text-brand-textMuted">Gateway Uptime</span>
+                                <div class="h-8 w-8 rounded-lg bg-brand-amber/10 flex items-center justify-center text-brand-amber">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-3xl font-black text-brand-textLight font-mono">2d 4h</h3>
+                            <p class="text-xs text-brand-textMuted mt-2">Zero packet dropouts detected</p>
+                        </div>
+                    </div>
+
+                    <!-- 3D Topology Visualization Area -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- 3D Canvas Box -->
+                        <div class="lg:col-span-2 bg-brand-card border border-brand-border/60 rounded-2xl overflow-hidden flex flex-col relative h-[500px]">
+                            <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-card/70 backdrop-blur z-10 absolute top-0 left-0 right-0">
+                                <div>
+                                    <h3 class="text-xs font-black uppercase tracking-wider text-brand-textMuted">Interactive Network Map</h3>
+                                    <p class="text-[10px] text-brand-textMuted">Drag mouse to rotate • Double click to zoom • Dynamic orbits match live connections</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="resetCamera3D()" class="px-2 py-1 bg-brand-border text-brand-textMuted hover:text-brand-textLight text-[10px] font-mono rounded">RESET VIEW</button>
+                                </div>
+                            </div>
+
+                            <!-- Canvas Mount -->
+                            <div id="three-canvas-container" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+                            <!-- Legend Overlay -->
+                            <div class="absolute bottom-4 left-4 p-3 bg-brand-card/90 border border-brand-border/60 backdrop-blur rounded-xl flex flex-col gap-2 z-10 text-[10px] font-mono">
+                                <div class="flex items-center gap-2">
+                                    <span class="h-3 w-3 rounded-full bg-brand-indigo inline-block"></span>
+                                    <span>Zerolink Core Hub</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="h-3 w-3 rounded-full bg-brand-mint inline-block"></span>
+                                    <span>Authenticated Subscribers</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-time payment stream logs -->
+                        <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 flex flex-col gap-4 max-h-[500px] overflow-hidden">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-brand-textMuted">Realtime Transaction Webhooks</h3>
+                            <div id="transactions-log" class="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+                                <!-- Placeholders -->
+                                <div class="text-center py-12 text-brand-textMuted flex flex-col items-center justify-center gap-4">
+                                    <i class="fa-solid fa-inbox text-3xl opacity-30 animate-pulse"></i>
+                                    <span class="text-xs font-mono">Waiting for payment socket callbacks. Trigger the simulator panel to view.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: ROUTERS -->
+                <div id="tab-routers" class="tab-pane hidden space-y-8 animate-fade-in">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-black text-brand-textLight">Multi-Router Node Configuration</h2>
+                        <p class="text-sm text-brand-textMuted">Deploy hardware routing rules, firewall mandates, and API connections.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Credentials Form -->
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 space-y-6">
+                                <h3 class="text-base font-bold text-brand-textLight flex items-center gap-2 pb-3 border-b border-brand-border/50">
+                                    <i class="fa-solid fa-server text-brand-indigo"></i>
+                                    Router Connection Parameters
+                                </h3>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Router Host Address (IP/DDNS)</label>
+                                        <input type="text" value="192.168.88.1" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">API Target Port (default 8728)</label>
+                                        <input type="text" value="8728" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">API Admin Username</label>
+                                        <input type="text" value="zerolink_portal" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">API Connection Password</label>
+                                        <input type="password" value="••••••••••••••••" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-3 pt-2">
+                                    <button onclick="showToast('Connection parameters configured successfully!', 'success')" class="px-5 py-2.5 bg-brand-indigo text-white font-bold text-xs rounded-xl hover:bg-brand-indigo/90 transition shadow-lg shadow-brand-indigo/15">
+                                        SAVE CONNECT PARAMETERS
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Firewall and mangle switches -->
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 space-y-6">
+                                <h3 class="text-base font-bold text-brand-textLight flex items-center gap-2 pb-3 border-b border-brand-border/50">
+                                    <i class="fa-solid fa-shield-halved text-brand-indigo"></i>
+                                    Hardware Level Security Enforcements
+                                </h3>
+
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between p-4 bg-brand-bg/40 border border-brand-border/40 rounded-xl">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-xs font-bold text-brand-textLight">Enforce Single-User MAC Profiles</span>
+                                            <span class="text-[10px] text-brand-textMuted">Binds profiles to shared-users=1 inside MikroTik hotspot profiles.</span>
+                                        </div>
+                                        <button id="toggle-mac-limit" onclick="toggleOption('toggle-mac-limit')" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-brand-mint">
+                                            <span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                        </button>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-brand-bg/40 border border-brand-border/40 rounded-xl">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-xs font-bold text-brand-textLight">Activate Router TTL Anti-Tethering Rules</span>
+                                            <span class="text-[10px] text-brand-textMuted">Alters all outgoing packets to TTL=1. Restricts Wi-Fi tethering sharing.</span>
+                                        </div>
+                                        <button id="toggle-ttl" onclick="toggleOption('toggle-ttl')" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-brand-mint">
+                                            <span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                        </button>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-brand-bg/40 border border-brand-border/40 rounded-xl">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span class="text-xs font-bold text-brand-textLight">Force Reply-Only DHCP ARP Binding</span>
+                                            <span class="text-[10px] text-brand-textMuted">Blocks manually configured static IPs bypassing Captive gateway filters.</span>
+                                        </div>
+                                        <button id="toggle-arp" onclick="toggleOption('toggle-arp')" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-brand-border">
+                                            <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side panel status node list -->
+                        <div class="space-y-6">
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-textMuted mb-4">Router Node List</h3>
+                                <div class="space-y-3">
+                                    <div class="p-3 bg-brand-bg/40 border border-brand-border/60 rounded-xl flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <span class="h-2 w-2 rounded-full bg-brand-mint animate-pulse"></span>
+                                            <div>
+                                                <p class="text-xs font-bold text-brand-textLight font-mono">Gateway East-01</p>
+                                                <p class="text-[10px] text-brand-textMuted">102 users connected</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-brand-mint/10 text-brand-mint font-semibold">Active</span>
+                                    </div>
+                                    <div class="p-3 bg-brand-bg/40 border border-brand-border/60 rounded-xl flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <span class="h-2 w-2 rounded-full bg-brand-mint animate-pulse"></span>
+                                            <div>
+                                                <p class="text-xs font-bold text-brand-textLight font-mono">Gateway West-02</p>
+                                                <p class="text-[10px] text-brand-textMuted">87 users connected</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-brand-mint/10 text-brand-mint font-semibold">Active</span>
+                                    </div>
+                                    <div class="p-3 bg-brand-bg/40 border border-brand-border/60 rounded-xl flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <span class="h-2 w-2 rounded-full bg-brand-rose"></span>
+                                            <div>
+                                                <p class="text-xs font-bold text-brand-textLight font-mono">Gateway Hub-03</p>
+                                                <p class="text-[10px] text-brand-rose">Offline • Connection Host Unreachable</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-brand-rose/10 text-brand-rose font-semibold">Offline</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: MPESA ENGINE -->
+                <div id="tab-mpesa" class="tab-pane hidden space-y-8 animate-fade-in">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-black text-brand-textLight">M-Pesa Webhook & Daraja Integration</h2>
+                        <p class="text-sm text-brand-textMuted">Map webhook API endpoints, configure Daraja credentials, and trigger test push notifications.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Integration form -->
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 space-y-6">
+                                <h3 class="text-base font-bold text-brand-textLight flex items-center gap-2 pb-3 border-b border-brand-border/50">
+                                    <i class="fa-solid fa-wallet text-brand-indigo"></i>
+                                    Daraja API Integration Credentials
+                                </h3>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Daraja Consumer Key</label>
+                                        <input type="text" value="Z3F4bTlQWnBDN2pZNWZid0FzZExXb3Zad1I3RkU2SmY=" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Daraja Consumer Secret</label>
+                                        <input type="password" value="••••••••••••••••••••••••" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Business Paybill/Till Number</label>
+                                        <input type="text" value="174379" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Online STK LNM Passkey</label>
+                                        <input type="password" value="bfb2727560270b65fb3bce95a3c373360c35784b12a1d702e859a24643735450" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-3 pt-2">
+                                    <button onclick="showToast('Daraja credentials updated successfully!', 'success')" class="px-5 py-2.5 bg-brand-indigo text-white font-bold text-xs rounded-xl hover:bg-brand-indigo/90 transition shadow-lg shadow-brand-indigo/15">
+                                        UPDATE CREDENTIALS
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Callback banner information -->
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 space-y-4">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-textMuted">Webhooks Callback Endpoint URL</h3>
+                                <p class="text-sm text-brand-textMuted">Provide the exact webhook path below within your Safaricom Developer Portal configuration base to establish end-to-end socket callback routing.</p>
+                                <div class="bg-brand-bg/50 border border-brand-border rounded-xl p-4 flex items-center justify-between gap-4">
+                                    <span class="text-xs font-mono text-brand-mint select-all truncate">https://api.zerolinkhotspot.io/v1/payments/mpesa-callback</span>
+                                    <button onclick="navigator.clipboard.writeText('https://api.zerolinkhotspot.io/v1/payments/mpesa-callback'); showToast('Callback URL copied to clipboard!', 'success')" class="px-3 py-1.5 bg-brand-indigo/10 hover:bg-brand-indigo/25 text-brand-indigo font-bold text-[10px] rounded transition flex-shrink-0">
+                                        COPY URL
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Simulator Widget -->
+                        <div class="space-y-6">
+                            <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-6 space-y-6">
+                                <h3 class="text-sm font-bold uppercase tracking-wider text-brand-textMuted">STK Push Sandbox Simulator</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Subscriber Phone Number</label>
+                                        <input id="sim-phone" type="text" placeholder="2547XXXXXXXX" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Select Hotspot Plan</label>
+                                        <select id="sim-package" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                                            <option value="hourly">Hourly Express — KES 20</option>
+                                            <option value="daily">Daily Pass — KES 50</option>
+                                            <option value="weekly">Weekly Pro — KES 250</option>
+                                            <option value="monthly">Monthly Unlimited — KES 800</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="triggerSTKSimulator()" class="w-full py-3 bg-brand-mint text-brand-bg font-extrabold text-xs rounded-xl hover:bg-brand-mint/90 transition shadow-lg shadow-brand-mint/15 uppercase tracking-wider">
+                                        TRIGGER API PAYMENT PROMPT
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: PACKAGES -->
+                <div id="tab-packages" class="tab-pane hidden space-y-8 animate-fade-in">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-textLight">Wi-Fi Access Packages</h2>
+                            <p class="text-sm text-brand-textMuted">Provision packages, rate limit download/upload speeds, and establish pricing tiers.</p>
+                        </div>
+                        <button onclick="openAddPackageModal()" class="px-4 py-2.5 bg-brand-indigo text-white font-bold text-xs rounded-xl hover:bg-brand-indigo/90 transition shadow-lg shadow-brand-indigo/15">
+                            + CREATE NEW PLAN
+                        </button>
+                    </div>
+
+                    <!-- Grid containers -->
+                    <div id="packages-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Dynamic components populate here -->
+                    </div>
+                </div>
+
+                <!-- TAB: LIVE SESSIONS -->
+                <div id="tab-sessions" class="tab-pane hidden space-y-8 animate-fade-in">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-black text-brand-textLight">Live Connected Hotspot Sessions</h2>
+                        <p class="text-sm text-brand-textMuted">Realtime connections linked to physical MAC hardware IDs. Session dropouts can be manually triggered.</p>
+                    </div>
+
+                    <div class="bg-brand-card border border-brand-border/60 rounded-2xl overflow-hidden">
+                        <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row gap-4 items-center justify-between bg-brand-card/50">
+                            <div class="relative w-full sm:w-72">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-brand-textMuted">
+                                    <i class="fa-solid fa-search text-xs"></i>
+                                </span>
+                                <input id="sessions-search" type="text" onkeyup="filterSessions()" placeholder="Search MAC or Phone..." class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl pl-9 pr-4 py-2 text-xs text-brand-textLight focus:outline-none transition-colors">
+                            </div>
+                            <span class="text-xs text-brand-textMuted font-mono">Showing <span id="sessions-count" class="text-brand-indigo font-bold">3</span> active sessions</span>
+                        </div>
+
+                        <!-- Interactive Table terminal representation -->
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-brand-border text-[10px] uppercase font-black text-brand-textMuted tracking-wider bg-brand-bg/20">
+                                        <th class="py-4 px-6">Customer Hardware MAC</th>
+                                        <th class="py-4 px-6">Assigned Local IP</th>
+                                        <th class="py-4 px-6">LNM Phone Reference</th>
+                                        <th class="py-4 px-6">Active Package Bundle</th>
+                                        <th class="py-4 px-6 text-right">Remaining Lease</th>
+                                        <th class="py-4 px-6 text-center">Session Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessions-table-body" class="divide-y divide-brand-border/40 text-xs">
+                                    <!-- Dynamic rows populate here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-blueprint" class="tab-pane hidden space-y-8 animate-fade-in">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-brand-textLight">Strategic Blueprint</h2>
+                            <p class="text-sm text-brand-textMuted">Unified Wi-Fi Hotspot Admin Management System Architecture.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 bg-brand-card border border-brand-border rounded-xl p-1.5">
+                            <button onclick="changeSlide(-1)" class="h-9 w-9 flex items-center justify-center rounded-lg bg-brand-bg text-brand-textMuted hover:text-brand-textLight hover:bg-brand-border transition">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <span class="text-xs font-mono font-semibold px-2">
+                                Slide <span id="current-slide-indicator" class="text-brand-mint">1</span> of 13
+                            </span>
+                            <button onclick="changeSlide(1)" class="h-9 w-9 flex items-center justify-center rounded-lg bg-brand-bg text-brand-textMuted hover:text-brand-textLight hover:bg-brand-border transition">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div class="bg-brand-card border border-brand-border/60 rounded-2xl p-4 space-y-1.5 max-h-[600px] overflow-y-auto custom-scrollbar">
+                            <span class="text-[10px] font-bold uppercase text-brand-textMuted tracking-widest block px-3 mb-2">Chapters Directory</span>
+                            <button onclick="jumpToSlide(1)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-indigo bg-brand-indigo/10 text-brand-textLight transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P1</span> <span class="truncate">Title Cover</span>
+                            </button>
+                            <button onclick="jumpToSlide(2)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P2</span> <span class="truncate">Operational Efficiency</span>
+                            </button>
+                            <button onclick="jumpToSlide(3)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P3</span> <span class="truncate">Bottlenecks & Risk</span>
+                            </button>
+                            <button onclick="jumpToSlide(4)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P4</span> <span class="truncate">Centralized Admin Dashboard</span>
+                            </button>
+                            <button onclick="jumpToSlide(5)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P5</span> <span class="truncate">Three-tier Stack</span>
+                            </button>
+                            <button onclick="jumpToSlide(6)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P6</span> <span class="truncate">M-Pesa Integration</span>
+                            </button>
+                            <button onclick="jumpToSlide(7)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P7</span> <span class="truncate">Router Governance</span>
+                            </button>
+                            <button onclick="jumpToSlide(8)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P8</span> <span class="truncate">Pricing & Bandwidth</span>
+                            </button>
+                            <button onclick="jumpToSlide(9)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P9</span> <span class="truncate">Revenue Analytics</span>
+                            </button>
+                            <button onclick="jumpToSlide(10)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P10</span> <span class="truncate">Automated Protection</span>
+                            </button>
+                            <button onclick="jumpToSlide(11)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P11</span> <span class="truncate">System Roadmap</span>
+                            </button>
+                            <button onclick="jumpToSlide(12)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P12</span> <span class="truncate">Inquiries / Contact</span>
+                            </button>
+                            <button onclick="jumpToSlide(13)" class="slide-thumb w-full text-left px-3 py-2 text-xs font-medium rounded-xl border border-brand-border text-brand-textMuted hover:text-brand-textLight hover:bg-brand-bg transition flex items-center gap-2">
+                                <span class="font-mono text-brand-mint text-[10px]">P13</span> <span class="truncate">Asset Attributions</span>
+                            </button>
+                        </div>
+
+                        <div class="lg:col-span-3 bg-brand-card border border-brand-border rounded-2xl p-8 relative flex flex-col justify-center min-h-[500px] overflow-hidden">
+                            <div id="slide-1" class="blueprint-slide space-y-6 text-center py-8">
+                                <div class="h-16 w-16 bg-gradient-to-tr from-brand-indigo to-brand-blue rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-brand-indigo/35 mb-4">
+                                    <i class="fa-solid fa-network-wired text-white text-3xl"></i>
+                                </div>
+                                <h3 class="text-4xl font-black tracking-tight text-brand-textLight">Strategic Blueprint</h3>
+                                <p class="text-lg text-brand-mint font-semibold uppercase tracking-widest font-mono">Unified Wi-Fi Hotspot Admin Management System Architecture</p>
+                                <p class="text-sm text-brand-textMuted max-w-xl mx-auto leading-relaxed">
+                                    A professional ecosystem integrating MikroTik RouterOS and Safaricom's Daraja API to provide automated provisioning, dynamic billing workflows, and robust anti-tethering security policies.
+                                </p>
+                                <div class="flex justify-center gap-6 pt-4 text-[10px] font-mono text-brand-textMuted">
+                                    <span><i class="fa-solid fa-circle-check text-brand-mint mr-1.5"></i> Automated Provisioning</span>
+                                    <span><i class="fa-solid fa-circle-check text-brand-mint mr-1.5"></i> Dynamic Billing</span>
+                                    <span><i class="fa-solid fa-circle-check text-brand-mint mr-1.5"></i> Multi-Device Security</span>
+                                </div>
+                            </div>
+
+                            <div id="slide-2" class="blueprint-slide hidden space-y-4">
+                                <span class="text-xs font-mono font-bold text-brand-mint uppercase tracking-wider">Chapter 01: Strategy</span>
+                                <h3 class="text-3xl font-black text-brand-textLight">Operational Efficiency</h3>
+                                <p class="text-sm text-brand-mint uppercase tracking-wider font-semibold font-mono">Modernizing Hotspot Infrastructure through Low-Code Admin Interfaces</p>
+                                <p class="text-sm text-brand-textMuted leading-relaxed">
+                                    Deploying high-performance internet gateways requires robust automation. Eliminating the manual configuration loop reduces operational friction, speeds up customer onboarding, and ensures real-time revenue collection verification on our edge portals.
+                                </p>
+                            </div>
+
+                            <div id="slide-3" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-rose">Manual code modifications hinder scalability and agility</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                    <div class="p-5 bg-brand-bg/60 border border-brand-border/80 rounded-xl space-y-3">
+                                        <div class="h-8 w-8 rounded-lg bg-brand-rose/10 text-brand-rose flex items-center justify-center">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                        </div>
+                                        <h4 class="text-sm font-bold text-brand-textLight">Operational Bottlenecks</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">
+                                            Engineers must push code to GitHub for every pricing or credential change, leading to slow response times.
+                                        </p>
+                                    </div>
+                                    <div class="p-5 bg-brand-bg/60 border border-brand-border/80 rounded-xl space-y-3">
+                                        <div class="h-8 w-8 rounded-lg bg-brand-rose/10 text-brand-rose flex items-center justify-center">
+                                            <i class="fa-solid fa-shield-virus"></i>
+                                        </div>
+                                        <h4 class="text-sm font-bold text-brand-textLight">Risk Exposure</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">
+                                            Hardcoded secrets (Daraja Keys, Router Passwords) in environment files increase the surface area for data breaches.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-4" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Centralized Admin Dashboard enables instant configuration</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                    <div class="space-y-4">
+                                        <h4 class="text-sm font-bold text-brand-mint font-mono uppercase">Dynamic Configuration Engine</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">
+                                            Replace static files with a persistent database layer. Admins can manage the entire network stack—from payments to routers—via a secured graphical user interface without touching a single line of code.
+                                        </p>
+                                        <div class="space-y-2 pt-2">
+                                            <div class="flex items-center gap-2 text-[11px] text-brand-textLight font-mono">
+                                                <i class="fa-solid fa-check text-brand-mint"></i> Zero-Downtime Updates
+                                            </div>
+                                            <div class="flex items-center gap-2 text-[11px] text-brand-textLight font-mono">
+                                                <i class="fa-solid fa-check text-brand-mint"></i> Multi-Tenant Management
+                                            </div>
+                                            <div class="flex items-center gap-2 text-[11px] text-brand-textLight font-mono">
+                                                <i class="fa-solid fa-check text-brand-mint"></i> Role-Based Access Control
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl overflow-hidden border border-brand-border/60">
+                                        <img src="https://png.pngtree.com/thumb_back/fh260/background/20241227/pngtree-dark-data-analytics-dashboard-black-background-image_16870487.jpg" onerror="this.src='https://placehold.co/400x300/1e293b/fff?text=Analytics+Dashboard'" class="w-full h-auto object-cover max-h-48" alt="SaaS Interface">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-5" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Three-tier stack connects MikroTik, Daraja, and MongoDB</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                    <div class="rounded-xl overflow-hidden border border-brand-border/60">
+                                        <img src="https://slidemodel.com/wp-content/uploads/6177-02-network-diagram-template-powerpoint-1.jpg" onerror="this.src='https://placehold.co/400x300/1e293b/fff?text=Network+Diagram'" class="w-full h-auto object-cover max-h-48" alt="Network Diagram">
+                                    </div>
+                                    <div class="space-y-3 text-xs">
+                                        <div class="p-3 bg-brand-bg/50 border border-brand-border rounded-xl">
+                                            <p class="font-bold text-brand-indigo mb-1">Backend Core</p>
+                                            <p class="text-brand-textMuted">Node.js middleware processes STK push requests and MikroTik API commands in parallel.</p>
+                                        </div>
+                                        <div class="p-3 bg-brand-bg/50 border border-brand-border rounded-xl">
+                                            <p class="font-bold text-brand-mint mb-1">Persistent Storage</p>
+                                            <p class="text-brand-textMuted">MongoDB stores encrypted router credentials and session logs for auditing.</p>
+                                        </div>
+                                        <div class="p-3 bg-brand-bg/50 border border-brand-border rounded-xl">
+                                            <p class="font-bold text-brand-blue mb-1">Gateway Edge</p>
+                                            <p class="text-brand-textMuted">MikroTik RouterOS executes hardware-level firewall and TTL mangle rules for access control.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-6" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Admin Module: Dynamic M-Pesa Integration</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-2">
+                                    <div class="p-4 bg-brand-bg/40 border border-brand-border rounded-xl space-y-2">
+                                        <i class="fa-solid fa-key text-brand-indigo text-lg mb-1"></i>
+                                        <p class="font-bold text-brand-textLight">API Auth</p>
+                                        <p class="text-brand-textMuted leading-relaxed">Manage Consumer Key and Secret for automated token generation.</p>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/40 border border-brand-border rounded-xl space-y-2">
+                                        <i class="fa-solid fa-mobile-screen text-brand-mint text-lg mb-1"></i>
+                                        <p class="font-bold text-brand-textLight">STK Settings</p>
+                                        <p class="text-brand-textMuted leading-relaxed">Configure Shortcode and LNM Passkey for instant user prompts.</p>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/40 border border-brand-border rounded-xl space-y-2">
+                                        <i class="fa-solid fa-link text-brand-blue text-lg mb-1"></i>
+                                        <p class="font-bold text-brand-textLight">Webhooks</p>
+                                        <p class="text-brand-textMuted leading-relaxed">Real-time updates to Callback URLs for payment confirmation.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-7" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Seamless Router Governance</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                    <div class="space-y-4">
+                                        <h4 class="text-sm font-bold text-brand-mint font-mono uppercase">Centralized Hardware Control</h4>
+                                        <p class="text-xs text-brand-textMuted leading-relaxed">
+                                            Eliminate manual WinBox access. The dashboard connects via port 8728 to provision users, monitor load, and update firewall rules across multiple sites from a single pane of glass.
+                                        </p>
+                                    </div>
+                                    <div class="rounded-xl overflow-hidden border border-brand-border/60">
+                                        <img src="https://static.vecteezy.com/system/resources/thumbnails/073/557/201/small_2x/close-up-of-blinking-leds-on-network-switch-showing-data-flow-and-connection-activity-perfect-for-it-technology-and-data-concepts-photo.jpg" onerror="this.src='https://placehold.co/400x300/1e293b/fff?text=Hardware+Core'" class="w-full h-auto object-cover max-h-48" alt="Gateway Controls">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-8" class="blueprint-slide hidden space-y-4">
+                                <h3 class="text-2xl font-black text-brand-textLight">Admins can adjust pricing and bandwidth instantly</h3>
+                                <div class="overflow-hidden border border-brand-border/60 rounded-xl mt-2">
+                                    <table class="w-full text-left text-xs">
+                                        <thead>
+                                            <tr class="bg-brand-bg border-b border-brand-border font-mono text-brand-mint text-[10px] uppercase font-bold">
+                                                <th class="p-3">Service Package</th>
+                                                <th class="p-3">Price (KES)</th>
+                                                <th class="p-3">Duration</th>
+                                                <th class="p-3">Speed Limit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-brand-border/40 font-mono text-brand-textMuted">
+                                            <tr class="hover:bg-brand-bg/30"><td class="p-3 text-brand-textLight font-semibold">Hourly Express</td><td class="p-3">20.00</td><td class="p-3">1 Hour</td><td class="p-3">5 Mbps</td></tr>
+                                            <tr class="hover:bg-brand-bg/30"><td class="p-3 text-brand-textLight font-semibold">Daily Pass</td><td class="p-3">50.00</td><td class="p-3">24 Hours</td><td class="p-3">5 Mbps</td></tr>
+                                            <tr class="hover:bg-brand-bg/30"><td class="p-3 text-brand-textLight font-semibold">Weekly Pro</td><td class="p-3">250.00</td><td class="p-3">7 Days</td><td class="p-3">10 Mbps</td></tr>
+                                            <tr class="hover:bg-brand-bg/30"><td class="p-3 text-brand-textLight font-semibold">Monthly Unlimited</td><td class="p-3">800.00</td><td class="p-3">30 Days</td><td class="p-3">20 Mbps</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div id="slide-9" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Dashboard metrics provide revenue visibility</h3>
+                                <div class="space-y-4">
+                                    <div class="space-y-2 font-mono text-xs">
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-16 text-brand-textMuted">January</span>
+                                            <div class="flex-1 bg-brand-bg rounded overflow-hidden"><div class="bg-gradient-to-r from-brand-indigo to-brand-blue h-3.5 flex items-center justify-end pr-2 text-[9px] font-bold text-white rounded" style="width: 45%">45k</div></div>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-16 text-brand-textMuted">February</span>
+                                            <div class="flex-1 bg-brand-bg rounded overflow-hidden"><div class="bg-gradient-to-r from-brand-indigo to-brand-blue h-3.5 flex items-center justify-end pr-2 text-[9px] font-bold text-white rounded" style="width: 55%">55k</div></div>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-16 text-brand-textMuted">March</span>
+                                            <div class="flex-1 bg-brand-bg rounded overflow-hidden"><div class="bg-gradient-to-r from-brand-indigo to-brand-blue h-3.5 flex items-center justify-end pr-2 text-[9px] font-bold text-white rounded" style="width: 60%">60k</div></div>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-16 text-brand-textMuted">April</span>
+                                            <div class="flex-1 bg-brand-bg rounded overflow-hidden"><div class="bg-gradient-to-r from-brand-indigo to-brand-blue h-3.5 flex items-center justify-end pr-2 text-[9px] font-bold text-white rounded" style="width: 85%">85k</div></div>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-16 text-brand-textMuted">May</span>
+                                            <div class="flex-1 bg-brand-bg rounded overflow-hidden"><div class="bg-gradient-to-r from-brand-mint to-brand-blue h-3.5 flex items-center justify-end pr-2 text-[9px] font-bold text-brand-bg rounded" style="width: 92%">92k</div></div>
+                                        </div>
+                                    </div>
+                                    <p class="text-[11px] text-brand-textMuted text-center font-mono">
+                                        Year-over-year revenue growth driven by automated STK Push activation protocols.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div id="slide-10" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">Automated protocols prevent revenue leakage</h3>
+                                <div class="space-y-4 text-xs">
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl flex items-start gap-3">
+                                        <i class="fa-solid fa-lock text-brand-mint mt-0.5"></i>
+                                        <div>
+                                            <p class="font-bold text-brand-textLight">MAC Address Binding</p>
+                                            <p class="text-brand-textMuted">Sessions are locked to the hardware ID that initiated payment.</p>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl flex items-start gap-3">
+                                        <i class="fa-solid fa-ban text-brand-rose mt-0.5"></i>
+                                        <div>
+                                            <p class="font-bold text-brand-textLight">TTL Mangle Rules</p>
+                                            <p class="text-brand-textMuted">Disables secondary Wi-Fi hotspots and tethering on client devices.</p>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl flex items-start gap-3">
+                                        <i class="fa-solid fa-users-slash text-brand-indigo mt-0.5"></i>
+                                        <div>
+                                            <p class="font-bold text-brand-textLight">Session Limiting</p>
+                                            <p class="text-brand-textMuted">Enforces `shared-users=1` at the Hotspot Profile level.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-11" class="blueprint-slide hidden space-y-6">
+                                <h3 class="text-2xl font-black text-brand-textLight">System Deployment Roadmap</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center text-xs pt-4 relative">
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl space-y-2">
+                                        <div class="h-6 w-6 rounded-full bg-brand-mint/10 text-brand-mint flex items-center justify-center mx-auto font-bold font-mono text-[10px]">1</div>
+                                        <p class="font-bold text-brand-textLight">Phase 1</p>
+                                        <p class="text-brand-textMuted">Environment Setup & Database Schema Design</p>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl space-y-2">
+                                        <div class="h-6 w-6 rounded-full bg-brand-indigo/10 text-brand-indigo flex items-center justify-center mx-auto font-bold font-mono text-[10px]">2</div>
+                                        <p class="font-bold text-brand-textLight">Phase 2</p>
+                                        <p class="text-brand-textMuted">Core API Integration & Admin UI Development</p>
+                                    </div>
+                                    <div class="p-4 bg-brand-bg/50 border border-brand-border rounded-xl space-y-2">
+                                        <div class="h-6 w-6 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center mx-auto font-bold font-mono text-[10px]">3</div>
+                                        <p class="font-bold text-brand-textLight">Phase 3</p>
+                                        <p class="text-brand-textMuted">Security Hardening & Multi-Router Scaling</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="slide-12" class="blueprint-slide hidden space-y-6 text-center">
+                                <div class="h-12 w-12 bg-brand-mint/10 text-brand-mint rounded-full flex items-center justify-center mx-auto">
+                                    <i class="fa-solid fa-envelope-open-text text-xl"></i>
+                                </div>
+                                <h3 class="text-3xl font-black text-brand-textLight">Questions?</h3>
+                                <p class="text-brand-mint font-semibold uppercase tracking-wider font-mono">Empowering Internet Providers with Scalable Automation</p>
+                                <div class="pt-4">
+                                    <a href="mailto:alexander@hotspot-system.io" class="inline-block px-6 py-3 bg-brand-indigo/10 hover:bg-brand-indigo/20 border border-brand-indigo/35 rounded-xl font-mono text-xs font-semibold tracking-wider text-brand-indigo select-all">
+                                        alexander@hotspot-system.io
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div id="slide-13" class="blueprint-slide hidden space-y-4">
+                                <h3 class="text-xl font-black text-brand-textLight">Image Sources</h3>
+                                <div class="space-y-2 text-[10px] font-mono text-brand-textMuted max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    <div class="p-2 border border-brand-border/40 bg-brand-bg/40 rounded">
+                                        <p class="text-brand-indigo">SaaS Interface Layer</p>
+                                        <a href="https://png.pngtree.com/thumb_back/fh260/background/20241227/pngtree-dark-data-analytics-dashboard-black-background-image_16870487.jpg" target="_blank" class="hover:underline select-all block truncate">https://png.pngtree.com/..._16870487.jpg</a>
+                                        <p class="mt-1">Source: <span class="text-brand-mint">pngtree.com</span></p>
+                                    </div>
+                                    <div class="p-2 border border-brand-border/40 bg-brand-bg/40 rounded">
+                                        <p class="text-brand-indigo">Network Topology Blueprint Diagram</p>
+                                        <a href="https://slidemodel.com/wp-content/uploads/6177-02-network-diagram-template-powerpoint-1.jpg" target="_blank" class="hover:underline select-all block truncate">https://slidemodel.com/..._1.jpg</a>
+                                        <p class="mt-1">Source: <span class="text-brand-mint">slidemodel.com</span></p>
+                                    </div>
+                                    <div class="p-2 border border-brand-border/40 bg-brand-bg/40 rounded">
+                                        <p class="text-brand-indigo">Gateway Hardware Core Link</p>
+                                        <a href="https://static.vecteezy.com/system/resources/thumbnails/073/557/201/small_2x/close-up-of-blinking-leds-on-network-switch-showing-data-flow-and-connection-activity-perfect-for-it-technology-and-data-concepts-photo.jpg" target="_blank" class="hover:underline select-all block truncate">https://static.vecteezy.com/...-photo.jpg</a>
+                                        <p class="mt-1">Source: <span class="text-brand-mint">vecteezy.com</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+
+    <!-- MOBILE STK MODAL SLIDE-OUT PANEL -->
+    <div id="phone-preview-panel" class="fixed inset-y-0 right-0 z-50 w-full max-w-sm transform translate-x-full transition-transform duration-300 ease-in-out bg-[#05070B] border-l border-brand-border flex flex-col shadow-2xl">
+        <div class="p-6 border-b border-brand-border flex items-center justify-between">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-brand-textMuted">M-Pesa STK Sandbox Screen</h3>
+            <button onclick="closePhonePreview()" class="text-brand-textMuted hover:text-brand-textLight">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center p-6 bg-brand-bg/30">
+            <!-- Simulated Mobile Shell -->
+            <div class="relative w-72 h-[480px] bg-black border-4 border-[#1E293B] rounded-[36px] overflow-hidden shadow-2xl flex flex-col">
+                <!-- Phone notch -->
+                <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-28 h-5 bg-[#1E293B] rounded-b-xl z-20"></div>
+
+                <!-- Live Dynamic Screen Background -->
+                <div class="flex-1 bg-cover bg-center flex flex-col justify-end p-4 relative" style="background-image: url('https://placehold.co/300x500/0c111e/6366f1?text=ZEROLINK+SIM');">
+                    <!-- Dynamic STK Bubble overlay -->
+                    <div id="stk-prompt-bubble" class="bg-white/95 backdrop-blur text-gray-900 rounded-2xl p-4 shadow-xl mb-4 z-10 border border-gray-100 flex flex-col gap-3 scale-95 opacity-0 transition-all duration-300 transform">
+                        <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                            <div class="h-6 w-6 bg-brand-mint rounded-full flex items-center justify-center text-white text-[10px] font-bold">M</div>
+                            <span class="text-[10px] font-bold text-gray-400 tracking-wider">M-PESA ONLINE</span>
+                        </div>
+                        <p class="text-[11px] leading-relaxed text-gray-800">
+                            Do you want to pay KES <span id="stk-prompt-cost" class="font-bold text-brand-indigo">0</span> to <strong class="text-gray-900">ZEROLINK CORE</strong> Account? Enter M-Pesa PIN:
+                        </p>
+                        <div class="relative">
+                            <input type="password" maxlength="4" placeholder="••••" class="w-full text-center tracking-[0.5em] bg-gray-50 border border-gray-200 rounded-lg py-1 text-sm font-bold font-mono focus:outline-none focus:border-brand-indigo">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-1">
+                            <button onclick="rejectSTK()" class="py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-[10px] font-bold text-gray-600 transition">Cancel</button>
+                            <button onclick="approveSTK()" class="py-2 rounded-lg bg-brand-mint hover:bg-brand-mint/90 text-[10px] font-bold text-white transition">Send PIN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADD PLAN -->
+    <div id="add-package-modal" class="fixed inset-0 z-50 hidden bg-brand-bg/80 backdrop-blur-sm flex items-center justify-center p-6">
+        <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-brand-border flex justify-between items-center">
+                <h3 class="text-base font-bold text-brand-textLight">Add New Wi-Fi Plan</h3>
+                <button onclick="closeAddPackageModal()" class="text-brand-textMuted hover:text-brand-textLight">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Package Name</label>
+                    <input id="new-pkg-name" type="text" placeholder="e.g. 1 Hour Unlimited" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight focus:outline-none transition-colors">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Cost (KES)</label>
+                        <input id="new-pkg-cost" type="number" placeholder="20" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Duration (Hours)</label>
+                        <input id="new-pkg-duration" type="number" placeholder="1" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Download Limit (Mbps)</label>
+                        <input id="new-pkg-dl" type="text" placeholder="5" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-brand-textMuted uppercase mb-2">Upload Limit (Mbps)</label>
+                        <input id="new-pkg-ul" type="text" placeholder="5" class="w-full bg-brand-bg border border-brand-border focus:border-brand-indigo rounded-xl p-3 text-sm text-brand-textLight font-mono focus:outline-none transition-colors">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-brand-border">
+                    <button onclick="closeAddPackageModal()" class="px-4 py-2 border border-brand-border text-brand-textMuted font-bold text-xs rounded-xl hover:bg-brand-bg transition">CANCEL</button>
+                    <button onclick="saveNewPackage()" class="px-4 py-2 bg-brand-indigo text-white font-bold text-xs rounded-xl hover:bg-brand-indigo/90 transition shadow-lg shadow-brand-indigo/15">SAVE PLAN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
+
+    <!-- SCRIPT ENGINE -->
+    <script>
+        
+        let currentTab = 'overview';
+        let revenueTotal = 1240;
+        let activeUsersCount = 3;
+
+        // Wi-Fi Package Definitions
+        let packages = [
+            { id: 'hourly', name: 'Hourly Express', cost: 20, duration: 1, limit: '5 Mbps / 5 Mbps' },
+            { id: 'daily', name: 'Daily Pass', cost: 50, duration: 24, limit: '5 Mbps / 5 Mbps' },
+            { id: 'weekly', name: 'Weekly Pro', cost: 250, duration: 168, limit: '10 Mbps / 10 Mbps' },
+            { id: 'monthly', name: 'Monthly Unlimited', cost: 800, duration: 720, limit: '20 Mbps / 20 Mbps' }
+        ];
+
+        // Active Lease sessions
+        let sessions = [
+            { id: 's1', mac: 'BC:D1:D3:52:84:7B', ip: '192.168.88.42', phone: '254711***789', package: 'Hourly Express', lease: '00:41:12' },
+            { id: 's2', mac: '70:A5:C3:91:0A:14', ip: '192.168.88.58', phone: '254705***224', package: 'Daily Pass', lease: '23:14:02' },
+            { id: 's3', mac: '4E:1C:8D:1F:B5:EA', ip: '192.168.88.109', phone: '254722***052', package: 'Weekly Pro', lease: '102:44:59' }
+        ];
+
+        let simulatedPayment = { phone: '', amount: 0, packageName: '', duration: 0 };
+
+        // THREE.JS TOPOLOGY ENGINE VARIABLES
+        let scene, camera, renderer;
+        let centralHubMesh;
+        let clientGroup;
+        let nodeConnections = [];
+        let sessionToNodeMap = new Map();
+
+        let currentSlide = 1;
+        const totalSlides = 13;
+
+        // ONLOAD HANDLER
+        window.onload = function() {
+            renderPackages();
+            renderSessions();
+            updateDashboardMetrics();
+            checkExistingAccounts();
+        };
+
+        // ACCOUNT CREATION & LOGIN LOGIC (Simulated Secure LocalStorage DB)
+        function checkExistingAccounts() {
+            const defaultAdmin = {
+                name: 'Alexander Admin',
+                email: 'alex@zerolink.io',
+                password: '12345678'
+            };
+
+            let admin = localStorage.getItem('zerolink_admin');
+            const authState = sessionStorage.getItem('zerolink_authenticated');
+
+            if (!admin) {
+                localStorage.setItem('zerolink_admin', JSON.stringify(defaultAdmin));
+                admin = JSON.stringify(defaultAdmin);
+            } else {
+                const storedAdmin = JSON.parse(admin);
+                if (storedAdmin.email !== defaultAdmin.email || storedAdmin.password !== defaultAdmin.password) {
+                    localStorage.setItem('zerolink_admin', JSON.stringify(defaultAdmin));
+                    admin = JSON.stringify(defaultAdmin);
+                }
+            }
+
+            const adminObj = JSON.parse(admin);
+            document.getElementById('login-identifier').value = adminObj.email;
+            document.getElementById('login-password').value = adminObj.password;
+
+            // Show traditional login view
+            toggleAuthMode('login');
+            if (authState === 'true') {
+                bypassAuthGate(adminObj);
+            }
+        }
+
+        function toggleAuthMode(mode) {
+            const subtitle = document.getElementById('auth-subtitle');
+            if (mode === 'signup') {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('signup-view').classList.remove('hidden');
+                subtitle.innerText = 'Local Node Account Creation';
+                subtitle.className = 'text-xs font-mono uppercase tracking-widest text-brand-mint font-bold mt-1';
+            } else {
+                document.getElementById('signup-view').classList.add('hidden');
+                document.getElementById('login-view').classList.remove('hidden');
+                subtitle.innerText = 'Local Edge Gateway Login';
+                subtitle.className = 'text-xs font-mono uppercase tracking-widest text-brand-indigo font-bold mt-1';
+            }
+        }
+
+        function registerUser() {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+
+            if (!name || !email || !password) {
+                showToast('Please fill out all credentials!', 'error');
+                return;
+            }
+
+            const adminObj = { name, email, password };
+            localStorage.setItem('zerolink_admin', JSON.stringify(adminObj));
+            showToast('Zerolink Master account created successfully!', 'success');
+            
+            // Switch to login view
+            toggleAuthMode('login');
+        }
+
+        function loginUser() {
+            const identifier = document.getElementById('login-identifier').value.trim();
+            const password = document.getElementById('login-password').value;
+            const adminStr = localStorage.getItem('zerolink_admin');
+
+            if (!adminStr) {
+                showToast('No registered admin found. Register first!', 'error');
+                return;
+            }
+
+            const admin = JSON.parse(adminStr);
+
+            if ((identifier === admin.email || identifier === 'admin') && password === admin.password) {
+                sessionStorage.setItem('zerolink_authenticated', 'true');
+                bypassAuthGate(admin);
+                showToast('Authentication socket granted.', 'success');
+            } else {
+                showToast('Invalid administrator credentials!', 'error');
+            }
+        }
+
+        function bypassAuthGate(admin) {
+            // Hide gate and show panel
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+
+            // Set Admin details dynamically
+            document.getElementById('sidebar-admin-name').innerText = admin.name;
+            document.getElementById('sidebar-admin-email').innerText = admin.email;
+            
+            // Init Avatar
+            const initials = admin.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('admin-avatar').innerText = initials;
+            document.getElementById('mobile-admin-avatar').innerText = initials;
+
+            // Start ThreeJS graphics engine safely
+            setTimeout(() => {
+                initThreeJS();
+                animateThreeJS();
+                onWindowResize();
+            }, 100);
+        }
+
+        function logoutUser() {
+            sessionStorage.removeItem('zerolink_authenticated');
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('auth-gate').classList.remove('hidden');
+            
+            // Destruct ThreeJS objects to free memory allocation
+            if (renderer) {
+                renderer.dispose();
+                const container = document.getElementById('three-canvas-container');
+                if (container) container.innerHTML = '';
+            }
+            showToast('Secure administrator session destroyed.', 'info');
+        }
+
+        function initThreeJS() {
+            const container = document.getElementById('three-canvas-container');
+            if (!container) return;
+
+            // Dimensions
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene and Renderer
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x04060A, 0.08);
+
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 5, 12);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x6366F1, 2, 50);
+            pointLight.position.set(0, 10, 0);
+            scene.add(pointLight);
+
+            // Central Server/Core Mesh (Zerolink core hub)
+            const hubGeometry = new THREE.IcosahedronGeometry(1.8, 1);
+            const hubMaterial = new THREE.MeshBasicMaterial({
+                color: 0x6366F1,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.85
+            });
+            centralHubMesh = new THREE.Mesh(hubGeometry, hubMaterial);
+            scene.add(centralHubMesh);
+
+            // Glowing core sphere
+            const coreGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: 0x0EA5E9,
+                transparent: true,
+                opacity: 0.9
+            });
+            const innerCore = new THREE.Mesh(coreGeometry, coreMaterial);
+            centralHubMesh.add(innerCore);
+
+            // Group for Orbiting Client Nodes
+            clientGroup = new THREE.Group();
+            scene.add(clientGroup);
+
+            // Instantiate active nodes
+            sessions.forEach(session => {
+                create3DNode(session);
+            });
+
+            // Camera control handlers (Drag to orbit view)
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                const deltaMove = {
+                    x: e.offsetX - previousMousePosition.x,
+                    y: e.offsetY - previousMousePosition.y
+                };
+
+                if (isDragging) {
+                    const deltaRotationQuaternion = new THREE.Quaternion()
+                        .setFromEuler(new THREE.Euler(
+                            deltaMove.y * 0.005,
+                            deltaMove.x * 0.005,
+                            0,
+                            'XYZ'
+                        ));
+                    
+                    clientGroup.quaternion.multiplyQuaternions(deltaRotationQuaternion, clientGroup.quaternion);
+                    centralHubMesh.quaternion.multiplyQuaternions(deltaRotationQuaternion, centralHubMesh.quaternion);
+                }
+
+                previousMousePosition = {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Resize event listener
+            window.addEventListener('resize', onWindowResize);
+        }
+
+
+        function create3DNode(session) {
+            // Random orbit placement
+            const radius = 3.5 + Math.random() * 2.5;
+            const angle = Math.random() * Math.PI * 2;
+            const yOffset = (Math.random() - 0.5) * 3;
+
+            // Orb mesh
+            const orbGeometry = new THREE.SphereGeometry(0.25, 12, 12);
+            const orbMaterial = new THREE.MeshBasicMaterial({
+                color: 0x10B981,
+                wireframe: false
+            });
+            const orbMesh = new THREE.Mesh(orbGeometry, orbMaterial);
+
+            orbMesh.position.set(
+                Math.cos(angle) * radius,
+                yOffset,
+                Math.sin(angle) * radius
+            );
+
+            // Add properties for animation frame looping
+            orbMesh.userData = {
+                angle: angle,
+                radius: radius,
+                speed: 0.005 + Math.random() * 0.01,
+                yOffset: yOffset,
+                sessionId: session.id
+            };
+
+            // Connection beam line
+            const points = [
+                new THREE.Vector3(0, 0, 0),
+                orbMesh.position.clone()
+            ];
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0x1E293B,
+                transparent: true,
+                opacity: 0.6
+            });
+            const connectionLine = new THREE.Line(lineGeometry, lineMaterial);
+
+            clientGroup.add(orbMesh);
+            clientGroup.add(connectionLine);
+
+            // Store references
+            sessionToNodeMap.set(session.id, {
+                mesh: orbMesh,
+                line: connectionLine
+            });
+        }
+
+        function destroy3DNode(sessionId) {
+            const node = sessionToNodeMap.get(sessionId);
+            if (node) {
+                // Remove from scene visual group
+                clientGroup.remove(node.mesh);
+                clientGroup.remove(node.line);
+                sessionToNodeMap.delete(sessionId);
+            }
+        }
+
+        function animateThreeJS() {
+            requestAnimationFrame(animateThreeJS);
+
+            // Rotate hub wireframe structure
+            if (centralHubMesh) {
+                centralHubMesh.rotation.y += 0.005;
+                centralHubMesh.rotation.x += 0.002;
+            }
+
+            // Move orbiting client nodes and reconstruct connecting beam line points
+            if (clientGroup) {
+                clientGroup.children.forEach(child => {
+                    if (child.userData && child.userData.sessionId) {
+                        const ud = child.userData;
+                        ud.angle += ud.speed;
+
+                        child.position.set(
+                            Math.cos(ud.angle) * ud.radius,
+                            ud.yOffset,
+                            Math.sin(ud.angle) * ud.radius
+                        );
+
+                        // Find corresponding connection line and update position vertices
+                        const sessionRef = sessionToNodeMap.get(ud.sessionId);
+                        if (sessionRef && sessionRef.line) {
+                            const positions = sessionRef.line.geometry.attributes.position.array;
+                            positions[3] = child.position.x;
+                            positions[4] = child.position.y;
+                            positions[5] = child.position.z;
+                            sessionRef.line.geometry.attributes.position.needsUpdate = true;
+                        }
+                    }
+                });
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function resetCamera3D() {
+            if (camera) {
+                camera.position.set(0, 5, 12);
+                camera.lookAt(0, 0, 0);
+                showToast("3D Camera tracking target reset.", "info");
+            }
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('three-canvas-container');
+            if (!container || !camera || !renderer) return;
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+
+        // TAB ACTIONS
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Handle navigation styling
+            document.querySelectorAll('aside nav button').forEach(el => {
+                el.classList.remove('bg-brand-indigo', 'text-white', 'shadow-lg', 'shadow-brand-indigo/15');
+                el.classList.add('text-brand-textMuted', 'hover:bg-brand-bg', 'hover:text-brand-textLight');
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-brand-textMuted', 'hover:bg-brand-bg', 'hover:text-brand-textLight');
+                activeBtn.classList.add('bg-brand-indigo', 'text-white', 'shadow-lg', 'shadow-brand-indigo/15');
+            }
+
+            // Adjust 3D canvas dimensions when tab reveals overview tab
+            if (tabId === 'overview') {
+                setTimeout(onWindowResize, 50);
+            }
+
+            // Hide sidebar trigger on mobile responsive viewports
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.add('-translate-x-full');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // METRICS COUNTER DYNAMICS
+        function updateDashboardMetrics() {
+            document.getElementById('stat-revenue').innerText = `KES ${revenueTotal.toLocaleString()}`;
+            document.getElementById('stat-active-users').innerText = activeUsersCount;
+            document.getElementById('sessions-count').innerText = sessions.length;
+        }
+
+        // CUSTOM INTEGRATED TOASTS SYSTEM
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 p-4 rounded-xl text-xs font-semibold shadow-2xl border transition-all duration-300 transform translate-y-2 opacity-0 select-none`;
+            
+            if (type === 'success') {
+                toast.className += ' bg-brand-card border-brand-mint/40 text-brand-mint';
+            } else if (type === 'error') {
+                toast.className += ' bg-brand-card border-brand-rose/40 text-brand-rose';
+            } else {
+                toast.className += ' bg-brand-card border-brand-border text-brand-textLight';
+            }
+
+            toast.innerHTML = `
+                <span class="h-2 w-2 rounded-full ${type === 'success' ? 'bg-brand-mint' : type === 'error' ? 'bg-brand-rose' : 'bg-brand-indigo'}"></span>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // TOGGLE DYNAMIC CONFIG OPTIONS
+        function toggleOption(id) {
+            const btn = document.getElementById(id);
+            const span = btn.querySelector('span');
+            const isActive = btn.classList.contains('bg-brand-mint');
+
+            if (isActive) {
+                btn.classList.remove('bg-brand-mint');
+                btn.classList.add('bg-brand-border');
+                span.classList.remove('translate-x-5');
+                span.classList.add('translate-x-0');
+                showToast('Hardware policy deactivated.', 'info');
+            } else {
+                btn.classList.add('bg-brand-mint');
+                btn.classList.remove('bg-brand-border');
+                span.classList.remove('translate-x-0');
+                span.classList.add('translate-x-5');
+                showToast('Hardware enforcement rule pushed to Edge interface.', 'success');
+            }
+        }
+
+        // RENDER ACTIVE SELECTION OF PACKAGES
+        function renderPackages() {
+            const container = document.getElementById('packages-container');
+            container.innerHTML = '';
+
+            packages.forEach(pkg => {
+                const card = document.createElement('div');
+                card.className = 'bg-brand-card border border-brand-border/60 rounded-2xl p-6 hover:border-brand-indigo/35 hover:scale-[1.01] transition-all flex flex-col justify-between h-48';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase font-extrabold tracking-widest text-brand-textMuted">${pkg.name}</span>
+                            <span class="h-1.5 w-1.5 rounded-full bg-brand-mint"></span>
+                        </div>
+                        <h4 class="text-2xl font-black font-mono text-brand-indigo mt-3">KES ${pkg.cost}</h4>
+                    </div>
+                    <div class="border-t border-brand-border/40 pt-3 mt-4 flex items-center justify-between text-[11px] font-mono text-brand-textMuted">
+                        <span>Rate: <strong>${pkg.limit}</strong></span>
+                        <button onclick="deletePackage('${pkg.id}')" class="text-brand-rose hover:opacity-80 transition duration-150">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openAddPackageModal() {
+            document.getElementById('add-package-modal').classList.remove('hidden');
+        }
+
+        function closeAddPackageModal() {
+            document.getElementById('add-package-modal').classList.add('hidden');
+        }
+
+        function saveNewPackage() {
+            const name = document.getElementById('new-pkg-name').value;
+            const cost = parseInt(document.getElementById('new-pkg-cost').value);
+            const dur = parseInt(document.getElementById('new-pkg-duration').value);
+            const dl = document.getElementById('new-pkg-dl').value;
+            const ul = document.getElementById('new-pkg-ul').value;
+
+            if (!name || isNaN(cost) || isNaN(dur) || !dl || !ul) {
+                showToast('Please fill out all package parameters!', 'error');
+                return;
+            }
+
+            const newId = 'pkg-' + Date.now();
+            packages.push({
+                id: newId,
+                name: name,
+                cost: cost,
+                duration: dur,
+                limit: `${dl} Mbps / ${ul} Mbps`
+            });
+
+            // Update selectors
+            const select = document.getElementById('sim-package');
+            const option = document.createElement('option');
+            option.value = newId;
+            option.text = `${name} — KES ${cost}`;
+            select.appendChild(option);
+
+            renderPackages();
+            closeAddPackageModal();
+            showToast('New Wi-Fi Profiling template built on router gateway.', 'success');
+        }
+
+        function deletePackage(id) {
+            packages = packages.filter(p => p.id !== id);
+            renderPackages();
+            showToast('Plan deleted from hotspot profile base.', 'info');
+        }
+
+        // RENDER ACTIVE NETWORK LEASES
+        function renderSessions() {
+            const tbody = document.getElementById('sessions-table-body');
+            tbody.innerHTML = '';
+
+            if (sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-12 text-brand-textMuted font-mono">
+                            Zero active leases connected at edge interface.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            sessions.forEach(session => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-brand-cardMuted/30 transition-colors duration-150';
+                tr.innerHTML = `
+                    <td class="py-4 px-6 font-mono font-medium text-brand-textLight">${session.mac}</td>
+                    <td class="py-4 px-6 font-mono text-brand-textMuted">${session.ip}</td>
+                    <td class="py-4 px-6 text-brand-textMuted font-mono">${session.phone}</td>
+                    <td class="py-4 px-6">
+                        <span class="px-2.5 py-1 rounded bg-brand-indigo/10 text-brand-indigo text-[10px] font-bold font-mono">
+                            ${session.package}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-right font-mono font-bold text-brand-mint">${session.lease}</td>
+                    <td class="py-4 px-6 text-center">
+                        <button onclick="kickUser('${session.id}')" class="px-3 py-1.5 bg-brand-rose/10 hover:bg-brand-rose/25 text-brand-rose text-[10px] font-extrabold rounded-lg transition duration-200">
+                            KICK NODE
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateDashboardMetrics();
+        }
+
+        function filterSessions() {
+            const searchVal = document.getElementById('sessions-search').value.toLowerCase();
+            const rows = document.querySelectorAll('#sessions-table-body tr');
+
+            rows.forEach(row => {
+                const mac = row.children[0]?.textContent.toLowerCase() || '';
+                const phone = row.children[2]?.textContent.toLowerCase() || '';
+                if (mac.includes(searchVal) || phone.includes(searchVal)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function kickUser(id) {
+            // Remove from list
+            sessions = sessions.filter(s => s.id !== id);
+            activeUsersCount = sessions.length;
+
+            // Remove corresponding 3D topology node
+            destroy3DNode(id);
+
+            renderSessions();
+            showToast('User session terminated. Lease dropped on router.', 'error');
+        }
+
+
+        // SANDBOX PAYMENTS SIMULATION TRIGGERS
+        function triggerQuickSimulator() {
+            switchTab('mpesa');
+            document.getElementById('sim-phone').value = '254712345678';
+            showToast('M-Pesa simulator ready to trigger transaction.', 'info');
+        }
+
+        function triggerSTKSimulator() {
+            const phone = document.getElementById('sim-phone').value;
+            const packageId = document.getElementById('sim-package').value;
+
+            if (!phone || phone.length < 10) {
+                showToast('Please enter a valid subscriber phone number!', 'error');
+                return;
+            }
+
+            const activePkg = packages.find(p => p.id === packageId);
+            if (!activePkg) return;
+
+            simulatedPayment = {
+                phone: phone,
+                amount: activePkg.cost,
+                packageName: activePkg.name,
+                duration: activePkg.duration
+            };
+
+            // Inject cost inside phone overlay frame
+            document.getElementById('stk-prompt-cost').innerText = activePkg.cost;
+
+            // Slide out the interactive panel phone preview frame
+            const panel = document.getElementById('phone-preview-panel');
+            panel.classList.remove('translate-x-full');
+
+            // Float the fake dynamic island push prompt
+            setTimeout(() => {
+                const prompt = document.getElementById('stk-prompt-bubble');
+                prompt.classList.remove('scale-95', 'opacity-0');
+            }, 300);
+
+            showToast('Lipa Na M-Pesa STK instruction broadcasted to target endpoint.', 'info');
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 1) currentSlide = 1;
+            if (currentSlide > totalSlides) currentSlide = totalSlides;
+            showSlide(currentSlide);
+        }
+
+        function jumpToSlide(slideNum) {
+            currentSlide = slideNum;
+            showSlide(currentSlide);
+        }
+
+        function showSlide(num) {
+            document.querySelectorAll('.blueprint-slide').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`slide-${num}`).classList.remove('hidden');
+            document.getElementById('current-slide-indicator').innerText = num;
+            
+            document.querySelectorAll('.slide-thumb').forEach((thumb, index) => {
+                if (index + 1 === num) {
+                    thumb.classList.add('border-brand-indigo', 'bg-brand-indigo/10');
+                    thumb.classList.remove('border-brand-border', 'text-brand-textMuted');
+                    thumb.classList.add('text-brand-textLight');
+                } else {
+                    thumb.classList.remove('border-brand-indigo', 'bg-brand-indigo/10', 'text-brand-textLight');
+                    thumb.classList.add('border-brand-border', 'text-brand-textMuted');
+                }
+            });
+        }
+
+        function closePhonePreview() {
+            const panel = document.getElementById('phone-preview-panel');
+            panel.classList.add('translate-x-full');
+
+            const prompt = document.getElementById('stk-prompt-bubble');
+            prompt.classList.add('scale-95', 'opacity-0');
+        }
+
+        function rejectSTK() {
+            closePhonePreview();
+            showToast('M-Pesa transaction aborted by client request.', 'error');
+        }
+
+        function approveSTK() {
+            closePhonePreview();
+
+            // Accumulate metrics
+            revenueTotal += simulatedPayment.amount;
+            activeUsersCount += 1;
+
+            // Generate fake MAC and IP for the mock device
+            const macArr = [];
+            for(let i=0; i<6; i++) {
+                macArr.push(Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2, '0'));
+            }
+            const randomMac = macArr.join(':');
+            const randomIp = `192.168.88.${Math.floor(Math.random() * 200) + 10}`;
+
+            const displayPhone = simulatedPayment.phone.substring(0, 7) + '***' + simulatedPayment.phone.substring(simulatedPayment.phone.length - 3);
+
+            const newSession = {
+                id: 's-' + Date.now(),
+                mac: randomMac,
+                ip: randomIp,
+                phone: displayPhone,
+                package: simulatedPayment.packageName,
+                lease: `${String(simulatedPayment.duration).padStart(2, '0')}:00:00`
+            };
+
+            // Push into array list
+            sessions.unshift(newSession);
+
+            // Dynamically instantiate new node on the 3D canvas map
+            create3DNode(newSession);
+
+            // Log entry in visual webhook stream feed
+            const logBox = document.getElementById('transactions-log');
+            const placeholder = logBox.querySelector('.text-center');
+            if (placeholder) placeholder.remove();
+
+            const entry = document.createElement('div');
+            entry.className = 'p-3 bg-brand-bg/60 border border-brand-border rounded-xl flex items-center justify-between text-xs animate-fade-in';
+            entry.innerHTML = `
+                <div>
+                    <p class="font-bold text-brand-mint">KES ${simulatedPayment.amount} Received</p>
+                    <p class="text-[10px] text-brand-textMuted font-mono">Ref: ${Math.random().toString(36).substring(2, 10).toUpperCase()} • ${displayPhone}</p>
+                </div>
+                <span class="text-[10px] font-mono text-brand-textMuted">Just now</span>
+            `;
+            logBox.insertBefore(entry, logBox.firstChild);
+
+            // Refresh UI components
+            renderSessions();
+            updateDashboardMetrics();
+            showToast('M-Pesa Callback verified! Session provisioned on topology.', 'success');
+        }
+    </script>
+</body>
 </html>
+
