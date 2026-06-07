@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: wifi-billing-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/wifi_billing
+      - DARAJA_ENV=${DARAJA_ENV}
+      - DARAJA_CONSUMER_KEY=${DARAJA_CONSUMER_KEY}
+      - DARAJA_CONSUMER_SECRET=${DARAJA_CONSUMER_SECRET}
+      - DARAJA_PASSKEY=${DARAJA_PASSKEY}
+      - DARAJA_SHORTCODE=${DARAJA_SHORTCODE}
+      - DARAJA_CALLBACK_URL=${DARAJA_CALLBACK_URL}
+      - DARAJA_CALLBACK_SECRET=${DARAJA_CALLBACK_SECRET}
+      - ROUTER_HOST=${ROUTER_HOST}
+      - ROUTER_PORT=${ROUTER_PORT}
+      - ROUTER_USER=${ROUTER_USER}
+      - ROUTER_PASSWORD=${ROUTER_PASSWORD}
+      - ROUTER_SECURE=${ROUTER_SECURE}
+    depends_on:
+      - mongo
+
+  mongo:
+    image: docker.io/library/mongo:6
+    container_name: wifi-billing-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  mongo-data:

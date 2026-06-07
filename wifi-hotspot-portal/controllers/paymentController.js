@@ -1,10 +1,16 @@
 const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
-const { initiateStkPush, normalizeKenyanPhone } = require('../services/mpesa');
-const { normalizeMac } = require('../services/router');
-const routerManager = require('../services/routerManager');
-const Setting = require('../models/Setting');
+const { initiateStkPush, normalizeKenyanPhone } = require('../services/mpesaService');
+const { RouterService, normalizeMac } = require('../services/routerService');
 const { config } = require('../config/config');
+
+const routerService = new RouterService();
+
+const PACKAGES = {
+  hourly: { name: '1 Hour', amount: 20, duration: '1h' },
+  daily: { name: '24 Hours', amount: 50, duration: '1d' },
+  weekly: { name: '1 Week', amount: 250, duration: '7d' }
+};
 
 function getMetadataValue(metadataItems, key) {
   const item = metadataItems.find((entry) => entry.Name === key);
@@ -22,8 +28,7 @@ async function initiatePayment(req, res) {
       });
     }
 
-    const settings = (await Setting.findOne().lean().exec()) || {};
-    const selectedPackage = (settings.packages || []).find((p) => p.key === packageKey);
+    const selectedPackage = PACKAGES[packageKey];
     if (!selectedPackage) {
       return res.status(400).json({
         success: false,
@@ -75,13 +80,11 @@ async function initiatePayment(req, res) {
 }
 
 function callback(req, res) {
-  // If a callback secret is configured, prefer signature verification.
   const configuredSecret = config.mpesa.callbackSecret || '';
 
   if (configuredSecret) {
     const incomingSig = (req.headers['x-callback-signature'] || '').trim();
 
-    // Require an HMAC-SHA256 hex signature in `x-callback-signature` when callback secret is set.
     if (!incomingSig) {
       return res.status(403).json({ ResultCode: 1, ResultDesc: 'Forbidden - missing signature' });
     }
@@ -89,7 +92,6 @@ function callback(req, res) {
     const payload = req.rawBody || JSON.stringify(req.body || {});
     const expected = crypto.createHmac('sha256', configuredSecret).update(payload).digest('hex');
 
-    // Prevent timing attacks and ensure same-length buffers before comparing
     const expectedBuf = Buffer.from(expected, 'hex');
     const incomingBuf = Buffer.from(incomingSig, 'hex');
     if (expectedBuf.length !== incomingBuf.length || !crypto.timingSafeEqual(expectedBuf, incomingBuf)) {
@@ -97,7 +99,6 @@ function callback(req, res) {
     }
   }
 
-  // Acknowledge quickly to avoid retries from Daraja
   res.status(200).json({ ResultCode: 0, ResultDesc: 'Callback accepted' });
 
   setImmediate(async () => {
@@ -123,7 +124,6 @@ function callback(req, res) {
       let transaction = await Transaction.findOne({ checkoutRequestId });
 
       if (!transaction) {
-        // If we cannot find the original transaction, create a minimal record.
         transaction = new Transaction({
           phone,
           macAddress: '00:00:00:00:00:00',
@@ -150,22 +150,7 @@ function callback(req, res) {
 
         try {
           if (transaction.macAddress !== '00:00:00:00:00:00') {
-            // choose first router configured in settings, or default env router
-            const settings = (await Setting.findOne().lean().exec()) || {};
-            const routerCfg = (settings.routers && settings.routers[0]) || null;
-            if (routerCfg && routerCfg._id) {
-              await routerManager.provisionOnRouter(routerCfg._id, transaction.macAddress, transaction.duration);
-            } else if (routerCfg) {
-              // if no stored id (freshly created array from env), attempt with provided fields
-              const r = new (require('../services/router').RouterService)();
-              r.setRouterConfig(routerCfg);
-              await r.provisionUser(transaction.macAddress, transaction.duration);
-            } else {
-              // fallback to env-based router service
-              const r = new (require('../services/router').RouterService)();
-              await r.provisionUser(transaction.macAddress, transaction.duration);
-            }
-
+            await routerService.provisionUser(transaction.macAddress, transaction.duration);
             transaction.routerProvisioned = true;
             transaction.routerProvisionError = '';
           } else {
@@ -235,3 +220,5 @@ module.exports = {
   paymentStatus,
   listPackages
 };
+// Re-export the existing controller implementation from the primary codebase
+module.exports = require('../../src/controllers/paymentController');

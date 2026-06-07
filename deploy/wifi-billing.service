@@ -1,0 +1,18 @@
+[Unit]
+Description=WiFi Billing System Node App
+After=network.target mongod.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/wifi-billing-system
+ExecStart=/usr/bin/node /opt/wifi-billing-system/src/server.js
+Restart=on-failure
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=MONGO_URI=mongodb://127.0.0.1:27017/wifi_billing
+Environment=PATH=/usr/bin:/usr/local/bin
+
+[Install]
+WantedBy=multi-user.target

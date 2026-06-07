@@ -1,16 +1,5 @@
 const axios = require('axios');
 const { config, assertConfig } = require('../config/config');
-const Setting = require('../models/Setting');
-
-async function loadDaraja() {
-  try {
-    const s = await Setting.findOne().lean().exec();
-    if (s && s.daraja && s.daraja.consumerKey) return s.daraja;
-  } catch (e) {
-    // ignore and fall back to env config
-  }
-  return config.mpesa;
-}
 
 function normalizeKenyanPhone(phone) {
   const cleaned = String(phone || '').replace(/\s+/g, '');
@@ -43,21 +32,25 @@ function generateTimestamp(date = new Date()) {
   ].join('');
 }
 
-async function generatePassword(timestamp) {
-  const daraja = await loadDaraja();
+function generatePassword(timestamp) {
+  assertConfig([
+    { key: 'DARAJA_SHORTCODE', value: config.mpesa.shortCode },
+    { key: 'DARAJA_PASSKEY', value: config.mpesa.passKey }
+  ]);
 
-  if (!daraja || !daraja.shortCode || !daraja.passKey) throw new Error('Missing Daraja shortCode/passKey');
-  const payload = `${daraja.shortCode}${daraja.passKey}${timestamp}`;
+  const payload = `${config.mpesa.shortCode}${config.mpesa.passKey}${timestamp}`;
   return Buffer.from(payload).toString('base64');
 }
 
 async function getAccessToken() {
-  const daraja = await loadDaraja();
-  if (!daraja || !daraja.consumerKey || !daraja.consumerSecret) throw new Error('Missing Daraja consumer credentials');
+  assertConfig([
+    { key: 'DARAJA_CONSUMER_KEY', value: config.mpesa.consumerKey },
+    { key: 'DARAJA_CONSUMER_SECRET', value: config.mpesa.consumerSecret }
+  ]);
 
-  const auth = Buffer.from(`${daraja.consumerKey}:${daraja.consumerSecret}`).toString('base64');
-  const baseUrl = (daraja.environment || 'sandbox') === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
-  const url = `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`;
+  const auth = Buffer.from(`${config.mpesa.consumerKey}:${config.mpesa.consumerSecret}`).toString('base64');
+
+  const url = `${config.mpesa.baseUrl}/oauth/v1/generate?grant_type=client_credentials`;
 
   try {
     const response = await axios.get(url, {
@@ -79,35 +72,42 @@ async function getAccessToken() {
 }
 
 async function initiateStkPush({ phoneNumber, amount, accountReference, transactionDesc }) {
-  const daraja = await loadDaraja();
-  if (!daraja || !daraja.shortCode || !daraja.callbackUrl) throw new Error('Missing Daraja shortCode or callbackUrl');
+  assertConfig([
+    { key: 'DARAJA_SHORTCODE', value: config.mpesa.shortCode },
+    { key: 'DARAJA_CALLBACK_URL', value: config.mpesa.callbackUrl }
+  ]);
 
   const token = await getAccessToken();
   const timestamp = generateTimestamp();
-  const password = await generatePassword(timestamp);
+  const password = generatePassword(timestamp);
   const normalizedPhone = normalizeKenyanPhone(phoneNumber);
 
-  const baseUrl = (daraja.environment || 'sandbox') === 'production' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
-
   const payload = {
-    BusinessShortCode: daraja.shortCode,
+    BusinessShortCode: config.mpesa.shortCode,
     Password: password,
     Timestamp: timestamp,
     TransactionType: 'CustomerPayBillOnline',
     Amount: Number(amount),
     PartyA: normalizedPhone,
-    PartyB: daraja.shortCode,
+    PartyB: config.mpesa.shortCode,
     PhoneNumber: normalizedPhone,
-    CallBackURL: daraja.callbackUrl,
+    CallBackURL: config.mpesa.callbackUrl,
     AccountReference: accountReference,
     TransactionDesc: transactionDesc
   };
 
   try {
-    const response = await axios.post(`${baseUrl}/mpesa/stkpush/v1/processrequest`, payload, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      timeout: 20000
-    });
+    const response = await axios.post(
+      `${config.mpesa.baseUrl}/mpesa/stkpush/v1/processrequest`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 20000
+      }
+    );
 
     return {
       ...response.data,
@@ -126,3 +126,5 @@ module.exports = {
   getAccessToken,
   initiateStkPush
 };
+// Re-export M-Pesa service implementation
+module.exports = require('../../src/services/mpesa');

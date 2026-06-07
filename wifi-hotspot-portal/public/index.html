@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wi-Fi Billing Portal</title>
+    <style>
+      :root { --bg: #f2f6fb; --card: #ffffff; --ink: #12223a; --muted: #5d708a; --brand: #0a7a40; }
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; font-family: system-ui, sans-serif; background: var(--bg); display:grid; place-items:center; padding:18px; }
+      .portal { width:min(720px,100%); background:var(--card); border-radius:16px; padding:18px; }
+    </style>
+  </head>
+  <body>
+    <main class="portal">
+      <section>
+        <h1>Wi-Fi Billing Portal</h1>
+        <p>Use the canonical implementation in the main project for full features. This is the standalone copy.</p>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wi-Fi Billing Portal</title>
+    <style>
+      /* Minimal inline styles copied from main public/index.html for the portal shim */
+      :root { --bg: #f2f6fb; --card: #ffffff; --ink: #12223a; --muted: #5d708a; --brand: #0a7a40; }
+      body { margin:0; font-family: system-ui, sans-serif; background: var(--bg); }
+      .portal { max-width:720px; margin:24px auto; background:#fff; padding:18px; border-radius:12px; }
+    </style>
+  </head>
+  <body>
+    <main class="portal">
+      <h1>Wi-Fi Billing Portal (shim)</h1>
+      <p>This is a local copy of the portal; the canonical files live in the main `public/` folder.</p>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 
-dotenv.config();
+dotenv.config({ path: process.env.PORTAL_ENV_FILE || '.env' });
 
 const config = {
   env: process.env.NODE_ENV || 'development',
@@ -25,14 +25,6 @@ const config = {
     user: process.env.ROUTER_USER || '',
     password: process.env.ROUTER_PASSWORD || '',
     secure: String(process.env.ROUTER_SECURE || 'false').toLowerCase() === 'true'
-    ,
-    hotspotInterface: process.env.ROUTER_HOTSPOT_INTERFACE || ''
-    ,
-    commandLogFile: process.env.ROUTER_COMMAND_LOGFILE || ''
-  }
-  ,
-  admin: {
-    token: process.env.ROUTER_ADMIN_TOKEN || ''
   }
 };
 
@@ -44,7 +36,4 @@ function assertConfig(pairs) {
   }
 }
 
-module.exports = {
-  config,
-  assertConfig
-};
+module.exports = { config, assertConfig };
