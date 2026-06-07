@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wi-Fi Billing Portal</title>
+    <style>
+      :root {
+        --bg: #f2f6fb;
+        --card: #ffffff;
+        --ink: #12223a;
+        --muted: #5d708a;
+        --brand: #0a7a40;
+        --brand-strong: #065f31;
+        --warn: #b45309;
+        --error: #b91c1c;
+        --radius: 16px;
+        --shadow: 0 14px 32px rgba(15, 40, 72, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 20% 20%, #ffffff 0%, #e5efff 45%, #d8e8ff 100%);
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .portal {
+        width: min(720px, 100%);
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 22px;
+        background: linear-gradient(135deg, #0d8a49, #076336);
+        color: #fff;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .header p {
+        margin: 8px 0 0;
+        opacity: 0.92;
+        font-size: 0.95rem;
+      }
+
+      .body {
+        padding: 18px;
+      }
+
+      .meta {
+        background: #f4f9f4;
+        border: 1px solid #dbe8db;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .packages {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+
+      .package {
+        border: 1px solid #d8e4f7;
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        transition: transform 0.18s ease, border-color 0.18s ease;
+      }
+
+      .package:hover {
+        transform: translateY(-2px);
+        border-color: #84a6d8;
+      }
+
+      .package input {
+        margin-right: 8px;
+      }
+
+      .package-title {
+        display: block;
+        font-weight: 700;
+      }
+
+      .package-price {
+        color: var(--brand-strong);
+        font-weight: 700;
+      }
+
+      .form-row {
+        margin-top: 16px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.92rem;
+        margin-bottom: 6px;
+      }
+
+      input[type="tel"] {
+        width: 100%;
+        border: 1px solid #cad8ec;
+        border-radius: 12px;
+        font-size: 1rem;
+        padding: 11px 12px;
+      }
+
+      button {
+        margin-top: 14px;
+        width: 100%;
+        border: 0;
+        border-radius: 12px;
+        background: var(--brand);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 12px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background: #9fb4cf;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 14px;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 0.93rem;
+        background: #eef4ff;
+        color: #2b466f;
+      }
+
+      .status.success {
+        background: #e7f8ef;
+        color: #075d2f;
+      }
+
+      .status.warn {
+        background: #fff8e8;
+        color: var(--warn);
+      }
+
+      .status.error {
+        background: #feeaea;
+        color: var(--error);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="portal">
+      <section class="header">
+        <h1>Connect to Wi-Fi</h1>
+        <p>Pick a package, pay via M-Pesa, and get online instantly.</p>
+      </section>
+
+      <section class="body">
+        <div class="meta" id="clientMeta">Collecting router details...</div>
+
+        <form id="paymentForm">
+          <div class="packages" id="packagesWrap"></div>
+
+          <div class="form-row">
+            <label for="phone">M-Pesa phone number</label>
+            <input id="phone" type="tel" placeholder="e.g. 07XXXXXXXX" required />
+          </div>
+
+          <button id="payBtn" type="submit">Pay with M-Pesa</button>
+        </form>
+
+        <div id="statusBox" class="status" style="display: none"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
