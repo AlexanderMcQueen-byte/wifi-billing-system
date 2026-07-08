@@ -14,6 +14,52 @@ const phoneInput = document.getElementById('phone');
 const payBtn = document.getElementById('payBtn');
 const statusBox = document.getElementById('statusBox');
 const clientMeta = document.getElementById('clientMeta');
+const turnstileContainer = document.getElementById('turnstileContainer');
+
+let turnstileToken = null;
+
+// Initialize Turnstile widget by fetching the site key from the server
+async function initTurnstile() {
+  try {
+    const resp = await fetch('/api/turnstile/sitekey');
+    if (!resp.ok) return console.warn('Could not fetch turnstile site key');
+    const data = await resp.json();
+    const siteKey = data && data.siteKey;
+    if (!siteKey) return console.warn('Turnstile site key not configured on server');
+
+    // Load the cloudflare script dynamically
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      s.async = true;
+      s.defer = true;
+      s.onload = () => setTimeout(resolve, 50);
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+
+    // Render widget
+    if (window.turnstile) {
+      window.turnstile.render(turnstileContainer, {
+        sitekey: siteKey,
+        callback: (token) => {
+          turnstileToken = token;
+          payBtn.disabled = false;
+        },
+        'error-callback': () => {
+          turnstileToken = null;
+          payBtn.disabled = true;
+        },
+        'expired-callback': () => {
+          turnstileToken = null;
+          payBtn.disabled = true;
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Turnstile init failed:', err && err.message ? err.message : err);
+  }
+}
 
 let selectedPackage = 'hourly';
 let poller = null;
@@ -114,7 +160,7 @@ paymentForm.addEventListener('submit', async (event) => {
   setStatus('Sending STK push. Enter your M-Pesa PIN on your phone...', 'warn');
 
   try {
-    const response = await fetch('/api/pay', {
+    const response = await fetch('/api/v1/payments/request-stk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -122,6 +168,9 @@ paymentForm.addEventListener('submit', async (event) => {
         macAddress,
         ipAddress,
         packageKey: selectedPackage
+      ,
+        // include turnstile token
+        'cf-turnstile-response': turnstileToken
       })
     });
 
@@ -140,3 +189,6 @@ paymentForm.addEventListener('submit', async (event) => {
 
 renderPackages();
 clientMeta.textContent = `Router session detected | MAC: ${macAddress || 'N/A'} | IP: ${ipAddress || 'N/A'}`;
+
+// initialize captcha widget after DOM ready
+initTurnstile();

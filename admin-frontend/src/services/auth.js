@@ -1,4 +1,6 @@
-const API = import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:3000/api'
+const API = import.meta.env.VITE_API_URL || (() => {
+  throw new Error('VITE_API_URL environment variable is required; no local fallback allowed');
+})()
 
 export function saveToken(token){
   localStorage.setItem('admin_token', token)

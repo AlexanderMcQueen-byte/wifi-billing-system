@@ -72,6 +72,36 @@ npm start
 npm test
 ```
 
+## Cloudflare KV and Turnstile setup
+
+This app can store rate-limit state in Cloudflare Workers KV and uses Cloudflare Turnstile for STK request protection.
+
+1. Install Terraform and log into Cloudflare if needed.
+2. Copy `terraform.tfvars.example` to `terraform.tfvars` and fill in your credentials.
+2. Create a Cloudflare account token with enough permissions to create KV namespaces and application tokens.
+3. Run Terraform in the project root:
+
+```bash
+terraform init
+terraform apply
+```
+
+4. Copy the output values:
+- `cloudflare_kv_namespace_id`
+- `cloudflare_api_token`
+
+5. Add them to `.env` along with Turnstile keys:
+
+```env
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_KV_NAMESPACE_ID=cloudflare_kv_namespace_id_from_output
+CLOUDFLARE_API_TOKEN=cloudflare_api_token_from_output
+TURNSTILE_SITE_KEY=your_turnstile_site_key
+TURNSTILE_SECRET_KEY=your_turnstile_secret_key
+```
+
+6. Restart the server.
+
 ## API Endpoints
 
 - `POST /api/pay` - Start M-Pesa STK push

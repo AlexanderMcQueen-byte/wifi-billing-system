@@ -6,6 +6,21 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 const { config } = require('./config/config');
+
+// Verify all required cloud services are configured before starting
+if (!config.mongoUri || config.mongoUri.startsWith('mongodb://127.0.0.1')) {
+  throw new Error('MONGO_URI environment variable is required (use MongoDB Atlas or similar cloud service). No localhost fallback allowed.');
+}
+const cfAcct = (config.cloudflare.accountId || '').trim();
+const cfKv = (config.cloudflare.kvNamespaceId || '').trim();
+const cfToken = (config.cloudflare.apiToken || '').trim();
+if (!cfAcct || !cfKv || !cfToken || cfAcct.startsWith('your_') || cfKv.startsWith('your_') || cfToken.startsWith('your_')) {
+  throw new Error(
+    'Cloudflare KV environment variables are required and must not be placeholders: ' +
+    'CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_KV_NAMESPACE_ID, CLOUDFLARE_API_TOKEN'
+  );
+}
+
 const paymentRoutes = require('./routes/paymentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/admin/authRoutes');
@@ -41,6 +56,16 @@ app.get('/health', (req, res) => {
     success: true,
     message: 'Wi-Fi billing API is running'
   });
+});
+
+// Public endpoint to expose the Turnstile site key to clients (site key is safe to expose)
+app.get('/api/turnstile/sitekey', (req, res) => {
+  try {
+    const siteKey = (config.turnstile && config.turnstile.siteKey) || '';
+    return res.status(200).json({ success: true, siteKey });
+  } catch (err) {
+    return res.status(500).json({ success: false, siteKey: '' });
+  }
 });
 
 app.use('/api', paymentRoutes);

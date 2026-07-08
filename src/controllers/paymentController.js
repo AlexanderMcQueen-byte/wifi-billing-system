@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const axios = require('axios');
 const Transaction = require('../models/Transaction');
 const { initiateStkPush, normalizeKenyanPhone } = require('../services/mpesa');
 const { normalizeMac } = require('../services/router');
@@ -14,6 +15,36 @@ function getMetadataValue(metadataItems, key) {
 async function initiatePayment(req, res) {
   try {
     const { phone, macAddress, ipAddress = '', packageKey } = req.body;
+
+    // Cloudflare Turnstile token must be submitted from the client
+    const turnstileToken = req.body['cf-turnstile-response'] || req.body.turnstileToken || req.headers['cf-turnstile-response'];
+
+    if (!turnstileToken) {
+      return res.status(400).json({ success: false, message: 'Turnstile token missing or incomplete' });
+    }
+
+    // Verify Turnstile token server-side before performing STK push
+    try {
+      const verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+      const params = new URLSearchParams();
+      params.append('secret', (config.turnstile && config.turnstile.secretKey) || '');
+      params.append('response', turnstileToken);
+      if (req.ip) params.append('remoteip', req.ip);
+
+      const verifyResponse = await axios.post(verifyUrl, params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 5000
+      });
+
+      const verified = verifyResponse && verifyResponse.data && verifyResponse.data.success;
+      if (!verified) {
+        return res.status(403).json({ success: false, message: 'Captcha verification failed' });
+      }
+    } catch (verifyErr) {
+      // Treat slow/unavailable Turnstile as a transient error and reject conservatively
+      console.error('Turnstile verify error:', verifyErr && verifyErr.message ? verifyErr.message : verifyErr);
+      return res.status(503).json({ success: false, message: 'Captcha verification service unavailable. Try again later.' });
+    }
 
     if (!phone || !macAddress || !packageKey) {
       return res.status(400).json({

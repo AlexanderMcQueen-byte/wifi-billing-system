@@ -184,7 +184,12 @@
             <input id="phone" type="tel" placeholder="e.g. 07XXXXXXXX" required />
           </div>
 
-          <button id="payBtn" type="submit">Pay with M-Pesa</button>
+          <!-- Cloudflare Turnstile widget will be rendered here -->
+          <div class="form-row" id="turnstileContainer" style="margin-top:12px; margin-bottom:6px;">
+            <!-- widget injected by app.js -->
+          </div>
+
+          <button id="payBtn" type="submit" disabled>Pay with M-Pesa</button>
         </form>
 
         <div id="statusBox" class="status" style="display: none"></div>

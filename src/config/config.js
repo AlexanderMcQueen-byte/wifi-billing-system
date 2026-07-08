@@ -5,7 +5,7 @@ dotenv.config();
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 3000),
-  mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/wifi_billing',
+  mongoUri: process.env.MONGO_URI || '',  // Must be set; no local fallback
   mpesa: {
     environment: process.env.DARAJA_ENV || 'sandbox',
     consumerKey: process.env.DARAJA_CONSUMER_KEY || '',
@@ -33,6 +33,11 @@ const config = {
   ,
   admin: {
     token: process.env.ROUTER_ADMIN_TOKEN || ''
+  },
+  cloudflare: {
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID || '',
+    kvNamespaceId: process.env.CLOUDFLARE_KV_NAMESPACE_ID || '',
+    apiToken: process.env.CLOUDFLARE_API_TOKEN || ''
   }
 };
 
@@ -43,6 +48,11 @@ function assertConfig(pairs) {
     throw new Error(`Missing required configuration: ${missing.join(', ')}`);
   }
 }
+
+config.turnstile = {
+  siteKey: process.env.TURNSTILE_SITE_KEY || '',
+  secretKey: process.env.TURNSTILE_SECRET_KEY || ''
+};
 
 module.exports = {
   config,

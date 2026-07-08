@@ -1,0 +1,2 @@
+cloudflare_account_id = "e9fafcf5524aa26e19f1627e04352681"
+cloudflare_admin_api_token = "REPLACE_WITH_EXISTING_CLOUDFLARE_ADMIN_TOKEN"
